@@ -3,142 +3,54 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f766e" />
+  <meta name="theme-color" content="#0b1220" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="户外安全 · 离线定位实验 Demo。降级方案，不可作救援承诺。" />
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css" />
-  <title>离线定位 Demo</title>
+  <title>极端定位 · 无网无星</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app">
-    <div class="banner">
-      <strong>产品 Demo 声明：</strong>本页用于验收「断网取点 / 降级 / 极端无 GNSS」。
-      非精确定位模式均为<strong>降级方案</strong>，<strong>不可作救援承诺</strong>。
-    </div>
-
+  <main class="app">
     <header>
-      <h1>离线定位 Demo</h1>
-      <p class="sub">手机真机实验页 · PWA · 目标验收日 2026-11-03 · Asia/Shanghai</p>
+      <p class="eyebrow">无网络 · 无卫星</p>
+      <h1>我在哪</h1>
+      <p class="sub">相对起点的位移与朝向。不是绝对经纬度。</p>
     </header>
 
-    <div class="meta-row">
-      <span id="chipSecure" class="chip">安全上下文…</span>
-      <span id="chipGeo" class="chip">Geolocation…</span>
-      <span id="chipSw" class="chip">Service Worker…</span>
-      <span id="chipMode" class="chip">模式…</span>
+    <section class="status" id="statusBox" aria-live="polite">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">点下方开始</span>
+    </section>
+
+    <section class="hero">
+      <div class="metric">
+        <div class="label">离起点</div>
+        <div class="value" id="distance">0</div>
+        <div class="unit">米</div>
+      </div>
+      <div class="metric">
+        <div class="label">朝向</div>
+        <div class="value" id="heading">—</div>
+        <div class="unit">度</div>
+      </div>
+    </section>
+
+    <p class="hint" id="hint">一步：允许运动/方向传感器后走动，数字会跟着变。</p>
+
+    <div class="actions">
+      <button type="button" class="primary" id="btnStart">开始定位</button>
+      <button type="button" class="ghost" id="btnReset">重置起点</button>
+      <button type="button" class="sos" id="btnSos">生成求救短句</button>
     </div>
 
-    <div class="tabs" role="tablist">
-      <button type="button" class="tab active" id="tabGnss" role="tab">无网 GNSS<span class="hint">P0 真机取点</span></button>
-      <button type="button" class="tab" id="tabDegraded" role="tab">降级<span class="hint">失败不卡死</span></button>
-      <button type="button" class="tab" id="tabExtreme" role="tab">极端<span class="hint">无 GNSS 演示</span></button>
-    </div>
-
-    <div id="disclaimerDegraded" class="disclaimer hidden">
-      ⚠️ 当前为<strong>降级 / 非精确定位</strong>路径：可用最后已知点、手动钉点或相对位移粗估。
-      <strong>不可作救援承诺</strong>。
-    </div>
-
-    <section class="card">
-      <h2>实时 / 缓存坐标</h2>
-      <div class="grid2">
-        <div class="kv"><div class="k">纬度</div><div class="v" id="lat">—</div></div>
-        <div class="kv"><div class="k">经度</div><div class="v" id="lon">—</div></div>
-        <div class="kv"><div class="k">精度</div><div class="v" id="acc">—</div></div>
-        <div class="kv"><div class="k">来源</div><div class="v" id="source">—</div></div>
-        <div class="kv span2"><div class="k">时间戳</div><div class="v" id="ts">—</div></div>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn" id="btnRefresh">刷新取点</button>
-        <button type="button" class="btn secondary" id="btnWatch">持续监听</button>
-        <button type="button" class="btn secondary" id="btnUseLast">用最后已知点</button>
-        <button type="button" class="btn" id="btnSos">写入求救条</button>
-      </div>
-      <p class="status-line" id="statusLine"></p>
+    <section class="sos-box" hidden id="sosBox">
+      <div class="label">求救短句（可复制）</div>
+      <textarea id="sosText" readonly rows="4"></textarea>
+      <button type="button" class="ghost" id="btnCopy">复制</button>
     </section>
 
-    <section class="card" id="panelManual">
-      <h2>手动钉点（无地图）</h2>
-      <div class="disclaimer">手动输入坐标属于降级方案，不可作救援承诺。</div>
-      <label class="field" for="manualLat">纬度</label>
-      <input id="manualLat" type="number" inputmode="decimal" step="any" placeholder="例如 31.230416" />
-      <label class="field" for="manualLon">经度</label>
-      <input id="manualLon" type="number" inputmode="decimal" step="any" placeholder="例如 121.473701" />
-      <label class="field" for="manualNote">备注（可选）</label>
-      <input id="manualNote" type="text" placeholder="例如：河边巨石旁" />
-      <div class="actions">
-        <button type="button" class="btn" id="btnManualApply">应用手动钉点</button>
-      </div>
-    </section>
-
-    <section class="card hidden" id="panelExtreme">
-      <h2>极端无 GNSS · 罗盘 / 相对位移</h2>
-      <div class="disclaimer">
-        罗盘 + 步态/按钮位移仅为<strong>演示粗估</strong>。无绝对坐标时求救条将标注「无绝对坐标」。
-        <strong>降级方案，不可作救援承诺。</strong>
-      </div>
-      <div class="compass-wrap">
-        <div class="compass" aria-hidden="true">
-          <div class="n">N</div>
-          <div class="needle" id="needle"></div>
-        </div>
-        <div>
-          <div class="kv" style="margin-bottom:8px"><div class="k">朝向</div><div class="v" id="headingVal">—</div></div>
-          <div class="kv" style="margin-bottom:8px"><div class="k">相对位移</div><div class="v" id="relMeters">0.0 m</div></div>
-          <div class="kv"><div class="k">步态估计</div><div class="v" id="stepCount">0</div></div>
-        </div>
-      </div>
-      <p class="status-line" id="compassHint">点击下方开启传感器（iOS 需授权）。</p>
-      <div class="actions">
-        <button type="button" class="btn" id="btnEnableSensors">开启罗盘/运动</button>
-        <button type="button" class="btn secondary" id="btnPlus10">+10 米</button>
-        <button type="button" class="btn secondary" id="btnPlus50">+50 米</button>
-        <button type="button" class="btn secondary" id="btnResetRel">清零相对</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>求救条草稿</h2>
-      <textarea id="sosOut" readonly placeholder="点击「写入求救条」生成可复制文案…"></textarea>
-      <div class="actions">
-        <button type="button" class="btn" id="btnCopySos">复制文案</button>
-        <button type="button" class="btn secondary" id="btnInstallHint">如何装到主屏幕</button>
-        <button type="button" class="btn danger" id="btnClear">清缓存</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>验收清单 A / B / C</h2>
-      <ul class="check-list">
-        <li>
-          <input type="checkbox" id="chkA" />
-          <div><strong>A · 飞行模式室外 GNSS</strong><br />
-            出经纬+精度+时间戳 → 写入求救条含坐标 → 杀进程/关标签再开仍见最后成功点（localStorage）。</div>
-        </li>
-        <li>
-          <input type="checkbox" id="chkB" />
-          <div><strong>B · GNSS 失败 / 拒权限</strong><br />
-            不白屏卡死；降级 UI 含「降级/非精确定位」文案；可切最后已知点（标过期）与手动钉点。</div>
-        </li>
-        <li>
-          <input type="checkbox" id="chkC" />
-          <div><strong>C · 极端无 GNSS</strong><br />
-            罗盘 + 相对位移或手动钉点；求救条可生成并标「无绝对坐标」；全程不卡死。</div>
-        </li>
-      </ul>
-    </section>
-
-    <footer>
-      首次加载需联网缓存壳文件；之后飞行模式下仍可调系统 GNSS（与蜂窝无关）。
-      静态站可直接挂 GitHub Pages（仓库根目录）。
-    </footer>
-  </div>
-
-  <div class="toast" id="toast" role="status"></div>
-  <script src="./app.js" defer></script>
+    <p class="warn">仅相对定位，不作救援绝对坐标承诺。误差会随走动增大。</p>
+  </main>
+  <script src="app.js"></script>
 </body>
 </html>
