@@ -1,0 +1,66 @@
+# The failed demo was published with actions/deploy-pages. Removing that
+# workflow does not unpublish the last artifact, so this job replaces it
+# with a static retirement note and a service worker that drops the old cache.
+name: Replace retired Pages deployment
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assemble retirement site
+        run: |
+          mkdir -p _site
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta name="robots" content="noindex" />
+            <title>已退役</title>
+          </head>
+          <body>
+            <p>本仓库的离线定位 Demo 已在验收失败后退役（室内行人航位推算不准；求救功能无用）。请勿使用 GitHub Pages。项目正在重新规划。</p>
+          </body>
+          </html>
+          EOF
+          cat > _site/sw.js << 'EOF'
+          self.addEventListener('install', () => {
+            self.skipWaiting();
+          });
+          self.addEventListener('activate', (event) => {
+            event.waitUntil((async () => {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((key) => caches.delete(key)));
+              const clients = await self.clients.matchAll({ type: 'window' });
+              await Promise.all(clients.map((client) => client.navigate(client.url)));
+              await self.registration.unregister();
+            })());
+          });
+          EOF
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
